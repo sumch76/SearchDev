@@ -747,11 +747,11 @@ app.patch("/user",async(req,res)=>
     }
     catch(e){
       res.status(404).send("something went wrong" +e.message);
-    }
-   
+    } 
   },
   );
   ```
+  > this ▶️ indicates the changes in  code
 
 
 
