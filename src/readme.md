@@ -726,6 +726,11 @@ app.patch("/user",async(req,res)=>
      
  ```
 ## Api level validation
+
+- **`API LEVEL Validation`  is a process where  data is validated when it is send through an api before being stored to database**
+  - it ensures only correct,,complete and secured data is send to db
+  - it allows ony the required fields and filter out the unnecesaary fields thst are injected by any attacks.
+
 ```javascript
 app.patch("/user",async(req,res)=>
   {
@@ -752,6 +757,14 @@ app.patch("/user",async(req,res)=>
   );
   ```
   > this ▶️ indicates the changes in  code
+
+- if there is any mismatch in the incoming data like addition of extra field it will throw an error which is catched by catch block
+
+
+
+
+  
+
 
 
 
