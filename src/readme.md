@@ -775,6 +775,143 @@ app.patch("/user",async(req,res)=>
 
 - [for more details of validator click on this](https://www.npmjs.com/package/validator)
 
+## Episode 9
+
+- for validation we can create a new file where we can put our all validation and pass as a function inside the api call.
+
+- for that we can create a new folder `utils` and  and inside it ` validation.js` file
+
+here is validation.js code
+```javascript
+const validator=require("validator");
+const validateSignUpData=(req)=>{
+    const {firstName,lastName,emailId,password} = req.body;
+    if(!firstName || !lastName)
+    {
+        throw new Error("name is not valid!!");
+    }
+
+    else if(firstName.length<4||firstName.length>50)
+    {
+        throw new Error("first name should be greater than 4 and less than 50");
+        
+    }
+
+else if(!validator.isEmail(emailId))
+{
+    throw new Error("email is not valid");
+}
+else if(!validator.isStrongPassword(password)){
+    throw new Error("Password is not strong enough");
+}
+};
+module.exports={validateSignUpData  
+
+}
+
+```
+
+- passing in app.post api call in try block
+```javascript
+try{
+ validationSignUpData(req);
+}
+catch(e){
+}
+```
+#### **for password hashing we will use bcrypt**
+
+- bcrypt is a password-hashing function designed to securely hash passwords by providing resistance against brute-force attacks.
+
+# bcrypt: Secure Password Hashing
+
+- 
+bcrypt is a tool that helps you securely store passwords. Instead of saving the actual password, it converts (or "hashes") the password into a scrambled version that is much harder for hackers to guess. Even if two people use the same password, bcrypt scrambles them in a unique way.
+
+## How bcrypt Works:
+
+### 1. Salting:
+It adds a random string (called a "salt") to your password before converting it. This ensures that even if two people use "password123", their saved versions will look different.
+
+### 2. Hashing:
+- bcrypt turns your password into a fixed-length, scrambled code (called a "hash"). This code is what's stored, not the actual password.
+
+### 3. Work Factor:
+- bcrypt can be adjusted to take more time to scramble the password, making it harder for hackers to guess (especially with fast computers). This setting is called the "cost factor."
+
+## Example of How to Use bcrypt in JavaScript (Node.js)
+
+### Step 1: Install bcrypt
+- To use bcrypt, you need to install it in your project:
+```bash
+npm install bcrypt
+```
+### Step 2: Hashing (scrambling) a password
+ Here’s a simple code to hash a password:
+```javascript
+const bcrypt = require('bcrypt');
+
+// Your password
+const myPassword = "mySecurePassword";
+
+// Salt rounds (how many times the password gets scrambled)
+const saltRounds = 10; // 10 is a good starting number
+
+// Hash the password
+bcrypt.hash(myPassword, saltRounds, (err, hash) => {
+  if (err) {
+    console.error(err);  // In case something goes wrong
+  } else {
+    console.log("Hashed password:", hash);  // This scrambled version gets saved
+  }
+});
+```
+### Step 3: Verifying a Password
+When someone logs in, you don’t compare the password directly. You compare the scrambled (hashed) version they enter with the one saved in the database.
+
+```javascript
+bcrypt.compare(myPassword, hash, (err, result) => {
+  if (err) throw err;
+  console.log("Password matches:", result);  // true if correct, false otherwise
+});
+```
+
+ ```
+ const user=new User(req.body)
+ ```
+ - not good way
+
+**good way**
+```javascript
+app.post("/signup", async (req, res) => {
+  try {
+
+    //validation of data
+    validateSignUpData(req);
+    ↪️const {firstName, lastName, emailId, password } = req.body;
+
+    //encrypt the password
+    ↪️const hashedPassword = await bcrypt.hash(password, 10);
+    console.log(hashedPassword);
+    ↪️const user = new User({ firstName, lastName, emailId, password: hashedPassword });
+
+    console.log(user);
+    await user.save();
+    res.send("user added successfully");
+  }
+  catch (err) {
+    res.status(400).send("Error : " + err.message
+
+    );
+  }
+
+});
+```
+
+
+
+
+
 
 
 
