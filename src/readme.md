@@ -761,6 +761,24 @@ app.patch("/user",async(req,res)=>
 - if there is any mismatch in the incoming data like addition of extra field it will throw an error which is catched by catch block
 
 
+### validation on the skills ,it should not be  more than 10
+
+```javascript
+//it is inside the app.patch api call
+ if(data?.skills.length>10){
+        throw new Error("Skills should not be more than 10");
+      }
+```
+- **NEVER TRUST THE req.body**
+- we have validator.js library for validation.
+- we can use it in user schema and api call 
+
+- [for more details of validator click on this](https://www.npmjs.com/package/validator)
+
+
+
+
+
 
 
   
