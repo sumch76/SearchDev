@@ -879,7 +879,7 @@ bcrypt.compare(myPassword, hash, (err, result) => {
  ```
  const user=new User(req.body)
  ```
- - not good way
+ - ~~not good way~~
 
 **good way**
 ```javascript
@@ -907,7 +907,88 @@ app.post("/signup", async (req, res) => {
 
 });
 ```
+- <mark>this all changes taking place in  signup<mark>
 
+### now use of bcrypt password in login api call
+
+```javascript
+app.post("/login",async(req, res)=>{
+  try{
+const {emailId, password} = req.body;
+const user= await User.findOne({ emailId: emailId});
+if(!user)
+{
+  throw new Error("email is  not present in DB");
+}
+const isPasswordValid=await bcrypt.compare(password, user.password);
+ if(isPasswordValid)
+ {
+  res.send("login sucessfully");
+ }
+ else{
+  throw new Error("password is not correct");
+ }
+}
+  
+  catch(err){
+    res.status(400).send("Error : "+err.message);
+  }
+});
+```
+- but it should have bcrypt password using singup api
+
+##  <font color="aqua">Episode 10
+</font>
+
+**HOW authentication works**
+-let suppose user make a login (email,password) request  lekin wo authenticate honi chaiye then server genrates the jwt tokens
+and wrap the jwt token inside the cookies  and it send back the cookies to the client 
+- whenver the cookies send by the server, browser has inbuilt feature which store the cookies 
+- and if again you send a api call suppose a profile api then this cookie will  go along withit 
+- on every  api call run the cookie will send to the server it validates.
+
+### cookie demo
+
+suppose we want to add cookie on the login api inside thee  password validation
+
+```javascript
+if(isPasswordValid)
+ {
+   //create a jwt token
+
+   //add the token to the cookie and send back to the user
+   res.cookie("token","vbfhbvhfbghfdbghdbfguyewifhfkjadvanewjf ");
+  res.send("login sucessfully");
+ }
+ else{
+  throw new Error("password is not correct");
+ }
+```
+
+- now we need ro create a profile api
+
+```javascript
+app.get("/profile",(req,res)=>{
+  const cookies=req.cookies;
+  console.log(cookies);
+  res.send("send cookies"); 
+})
+```
+
+- it will send a cookies and saved but it will give undefined 
+- so for this we have cookie-parser 
+- we need to first install it using `npm i cookie-parser`
+ -then need to import 
+ `const cookieParser=require("cookie-parser");`
+
+ then pass it as `app.use(cookieParser());`
+
+
+**The `app.use(cookieParser())`; middleware in an Express.js application is used to parse cookies attached to the client’s request. It makes it easier to work with cookies within your Express app by adding the parsed cookie data to req.cookies, which can then be accessed as part of the request object.**
+
+>📝**Note:** now it will  show token in the console
+
+> ⚠️ **__Warning__:**  it is just dummy token fr checks
 
 
 
