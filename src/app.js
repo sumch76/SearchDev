@@ -5,9 +5,10 @@ const { validateSignUpData } = require("./utils/validation");
 const bcrypt = require("bcrypt");
 const User = require("./models/user");
 const cookieParser=require("cookie-parser");
+const jwt=require("jsonwebtoken");
 app.use(express.json());
 app.use(cookieParser());
-
+const {UserAuth}=require("./middlewares/auth");
 
 app.post("/signup", async (req, res) => {
   try {
@@ -38,34 +39,38 @@ app.post("/login",async(req, res)=>{
 const {emailId, password} = req.body;
 const user= await User.findOne({ emailId: emailId});
 if(!user)
-{
+{  
   throw new Error("email is  not present in DB");
 }
-const isPasswordValid=await bcrypt.compare(password, user.password);
- if(isPasswordValid)
+const isPasswordValid=await user.validatePassword(password);
+ if(isPasswordValid) 
  {
    //create a jwt token
+   const token=await user.getJWT();
 
    //add the token to the cookie and send back to the user
-   res.cookie("token","vbfhbvhfbghfdbghdbfguyewifhfkjadvanewjf ");
+   res.cookie("token",token,{expires:new Date(Date.now()+8*3600000)});
   res.send("login sucessfully");
  }
  else{
   throw new Error("password is not correct");
  }
 }
-  
   catch(err){
     res.status(400).send("Error : "+err.message);
   }
 });
 
-app.get("/profile",(req,res)=>{
-  const cookies=req.cookies;
-  console.log(cookies);
-  res.send("send cookies");
-   
-})
+app.get("/profile",UserAuth,async(req,res)=>{
+  try {
+  const user=req.user;
+  res.send(user);
+  
+  } catch (error) {
+    res.status(400).send("error:" +error.message);
+    
+  } 
+});
 //get user by email
 app.get("/user", async (req, res) => {
 
@@ -96,6 +101,7 @@ app.get("/user", async (req, res) => {
 
 
 });
+
 
 app.delete("/user", async (req, res) => {
   const userId = req.body.userId;

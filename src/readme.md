@@ -728,7 +728,7 @@ app.patch("/user",async(req,res)=>
 ## Api level validation
 
 - **`API LEVEL Validation`  is a process where  data is validated when it is send through an api before being stored to database**
-  - it ensures only correct,,complete and secured data is send to db
+  -  it ensures only correct,,complete and secured data is send to db
   - it allows ony the required fields and filter out the unnecesaary fields thst are injected by any attacks.
 
 ```javascript
@@ -979,16 +979,273 @@ app.get("/profile",(req,res)=>{
 - so for this we have cookie-parser 
 - we need to first install it using `npm i cookie-parser`
  -then need to import 
+
+ **Summary of Authentication Flow:**
+1. **Login:** User sends credentials (e.g., username/password).
+2. **Validation:** Server validates credentials.
+3. **Token/Session Creation:** If valid, the server creates a token (JWT) or a session.
+4. **Store Token/Session:** Token is stored on the client (e.g., localStorage or cookies).
+5. **Authorized Requests:** Client sends token/session with each request to access protected resources.
+6. **Verification:** Server verifies the token/session for every request.
+7. **Grant/Deny Access:** If valid, user is allowed access.
+This is how the basic authentication process works in most modern web applications.
  `const cookieParser=require("cookie-parser");`
 
  then pass it as `app.use(cookieParser());`
 
 
-**The `app.use(cookieParser())`; middleware in an Express.js application is used to parse cookies attached to the client’s request. It makes it easier to work with cookies within your Express app by adding the parsed cookie data to req.cookies, which can then be accessed as part of the request object.**
+**The `app.use(cookieParser())`; middleware in an Express.js application is used to parse cookies attached to the client’s request.**
+- It makes it easier to work with cookies within your Express app by adding the parsed cookie data to req.cookies, which can then be accessed as part of the request object**
 
 >📝**Note:** now it will  show token in the console
 
-> ⚠️ **__Warning__:**  it is just dummy token fr checks
+> ⚠️ **__Warning__:**  it is just dummy token for checks.
+
+
+## A JWT (JSON Web Token) 
+- It is a compact, self-contained token used for securely transmitting information between a client and a server. It is commonly used for authentication and authorization purposes in web applications. Here's how it works:
+
+### **Structure of a JWT**
+
+**`A JWT consists of three parts, separated by dots (.):`**
+
+**1.Header**
+**2.Payload**
+**3.Signature**
+
+`A typical JWT looks like this:`
+```javascript
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+```
+1. **Header**
+- The header contains metadata about the type of token and the hashing algorithm used (e.g., HMAC SHA256). It looks like this:
+
+```json
+{
+  "alg": "HS256", 
+  "typ": "JWT"
+}
+```
+2. **Payload**
+- The payload contains the claims, which are statements about the user and additional metadata. There are three types of claims:
+
+- Registered claims (e.g., iss, exp, sub)
+- Public claims (custom claims like name, email)
+- Private claims (specific to your application)
+
+**Example payload:**
+
+```json
+
+{
+  "sub": "1234567890", 
+  "name": "John Doe", 
+  "admin": true, 
+  "iat": 1516239022
+}
+```
+3. **Signature**
+- The signature is used to verify that the token has not been altered. It is created by taking the encoded header, encoded payload, a secret key, and signing them using the specified algorithm.
+
+#### Example signature creation (with HMAC SHA256):
+
+```scss
+HMACSHA256(
+  base64UrlEncode(header) + "." + base64UrlEncode(payload), 
+  secret_key
+)
+```
+# how to create a jwt token
+```javascript
+app.post("/login",async(req, res)=>{
+  try{
+const {emailId, password} = req.body;
+const user= await User.findOne({ emailId: emailId});
+if(!user)
+{
+  throw new Error("email is  not present in DB");
+}
+const isPasswordValid=await bcrypt.compare(password, user.password);
+ if(isPasswordValid)
+ {
+   //create a jwt token
+   const token=await jwt.sign({_id:user._id},secretkey)
+
+   //add the token to the cookie and send back to the user
+   res.cookie("token",token);
+  res.send("login sucessfully");
+ }
+ else{
+  throw new Error("password is not correct");
+ }
+}
+  
+  catch(err){
+    res.status(400).send("Error : "+err.message);
+  }
+});
+
+```
+## how to verify jwt token on subsequent requests
+
+- now i want to see the data after login  in profile
+
+- read the cookie inside the profile Api and find the logged in user
+
+```javascript
+app.get("/profile",async(req,res)=>{
+  try {
+    const cookies=req.cookies;
+
+    const {token}=cookies
+   
+    if (!token)
+    {
+      throw new Error("Invalid token"); 
+    }
+    //validate the token
+    const decodeMessage=await jwt.verify(token,"AbcdDE@123");
+  
+  const {_id}=decodeMessage;
+  const user=await User.findById(_id); 
+  if(!user)
+  {
+    throw new Error("user not found");
+    
+  }
+    res.send(user);
+    
+  } catch (error) { 
+  } 
+})
+```
+**⚠️: post login api will same**
+
+## adding middleware of UserAuth
+
+- changes in the ./middlewares/auth.js
+
+```javascript
+const jwt=require("jsonwebtoken");
+const User=require("../models/user");
+ const UserAuth=async(req,res,next)=>{
+  try{
+    const {token}=req.cookies;
+    if (!token)
+      {
+        throw new Error("Invalid token"); 
+      }
+    const decodeMessage=await jwt.verify(token,"AbcdDE@123");
+    const {_id}=decodeMessage;
+    const user=await User.findById(_id);
+    if(!user)
+    { 
+      throw new Error("User not found");
+    }
+     
+    req.user=user;  
+    next(); 
+  }
+  catch(err){
+    res.status(401).send({message:"err.message"});
+  }
+ }
+module.exports={
+  UserAuth,
+}
+
+```
+- now if we want to use it we can directly put it in the api call.
+```javascript
+
+app.get("/profile",UserAuth,async(req,res)=>{
+  try {
+  const user=req.user;
+  res.send(user);
+  
+  } catch (error) {
+    res.status(400).send("error:"+error.message);
+    
+  } 
+});
+```
+- `UserAuth is main character here`
+
+## how to set an expiry time for the jwt token
+- we can set an expiry time for the jwt token when creating it by passing a  `"expiresIn"`
+property as a 3rd argument to the "sign" function
+
+**EXAMPLE**
+```javascript
+const token=await jwt.sign(data,secretKey,{expiresIn:"7d"})
+```
+- in code
+```javascript
+const token=await jwt.sign({_id:user._id},"AbcdDE@123",{expiresIn:"7d"})
+```
+## how to set a expiry time for the cookies
+
+- similiary we can pass the expiry time for the cookie when  creating it passing expires prop as  3rd argument in the `res.cookies()`
+
+```javascript
+ res.cookie("token",token,{expires: new Date(Date.now()+8*3600000)});
+  ```
+
+   ### **what are Schema methods?** 
+
+   - These are methods that are directly attached to schema and are available for all the document that are created based on that schema.
+   -  → Arrow fn  is not allowed for schema methods as "this" Keyword is `"undefined"`
+
+ **this is userSchema.methods**
+ ```javascript
+    userSchema.methods.getJWT=async function(){
+        const user =this;
+        const token=await jwt.sign({_id:user._id},"AbcdDE@123",{expiresIn:"7d",});
+
+        return token; 
+    };
+  ```
+
+- here to use it
+ **before**
+
+ ```javascript
+  const token=await jwt.sign({_id:user._id},"AbcdDE@123",{expiresIn:"7d"})
+  ```
+
+  **after**
+  ```javascript
+  const token=await user.getJWT();
+  ```
+
+  - same for the validatePassword
+   
+   ```javascript
+     userSchema.methods.validatePassword = async function(password){
+        const user =this;
+        const isPasswordValid=await bcrypt.compare(password, this.password);
+        return isPasswordValid;
+     }
+   ```
+**before**
+```javascript
+const isPasswordValid=await bcrypt.compare(password, user.password);
+
+```
+**after**
+```javascript
+const isPasswordValid=await user.validatePassword(password);
+```
+
+
+
+
+
+
+
+
+
+
 
 
 
