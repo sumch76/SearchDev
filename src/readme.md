@@ -1230,7 +1230,6 @@ const token=await jwt.sign({_id:user._id},"AbcdDE@123",{expiresIn:"7d"})
 **before**
 ```javascript
 const isPasswordValid=await bcrypt.compare(password, user.password);
-
 ```
 **after**
 ```javascript
