@@ -1,6 +1,6 @@
-
 const express = require("express");
 const {UserAuth}=require("../middlewares/auth");
+const { validateEditProfileData } = require("../utils/validation");
 const profileRouter=express.Router();
 
 profileRouter.get("/profile/view",UserAuth,async(req,res)=>{
@@ -13,31 +13,26 @@ profileRouter.get("/profile/view",UserAuth,async(req,res)=>{
       
     } 
   });
-  profileRouter.patch("/user", async (req, res) => {
+  profileRouter.patch("/profile/edit", UserAuth ,async(req, res) => {
 
-    const userId = req.body.userId;
-    const data = req.body;
     try {
-      const Allowded_fields = ["about", "skills", "age", "gender", "userId"]
-      const isUpdated = Object.keys(data).every((k) =>
-        Allowded_fields.includes(k));
-      if (!isUpdated) {
-        throw new Error("Invalid fields to update");
+      if(!validateEditProfileData(req))
+        {
+        throw new Error("invalid edit request");
       }
+      const loggedInUser=req.user;
+      Object.keys(req.body).forEach((key)=>(loggedInUser[key]=req.body[key]));
+       await loggedInUser.save();
   
-      if (data?.skills.length > 10) {
-        throw new Error("Skills should not be more than 10");
-      }
-      await User.findByIdAndUpdate({ _id: userId }, data, {
-        runValidators: true,
-      });
-  
-      res.send("user added successfully");
-    }
+    
+       res.json({
+        message: `${loggedInUser.firstName}, your profile updated successfuly`,
+        data: loggedInUser,
+    });
+  }
     catch (e) {
-      res.status(404).send("something went wrong" + e.message);
+      res.status(400).send("something went wrong :" + e.message);
     }
-  
   },
   );
 
