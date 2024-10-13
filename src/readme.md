@@ -1235,12 +1235,519 @@ const isPasswordValid=await bcrypt.compare(password, user.password);
 ```javascript
 const isPasswordValid=await user.validatePassword(password);
 ```
+```
+app.patch("/user", async (req, res) => {
+
+    const userId = req.body.userId;
+    const data = req.body;
+    try {
+      const Allowded_fields = ["about", "skills", "age", "gender", "userId"]
+      const isUpdated = Object.keys(data).every((k) =>
+        Allowded_fields.includes(k));
+      if (!isUpdated) {
+        throw new Error("Invalid fields to update");
+      }
+  
+      if (data?.skills.length > 10) {
+        throw new Error("Skills should not be more than 10");
+      }
+      await User.findByIdAndUpdate({ _id: userId }, data, {
+        runValidators: true,
+      });
+  
+      res.send("user added successfully");
+    }
+    catch (e) {
+      res.status(404).send("something went wrong" + e.message);
+    }
+  
+  },
+  );
+  ```
+```
+app.get("/user", async (req, res) => {
+
+  // const userEmail=req.body.emailId;
+  // try{
+  //   const user= await User.find({emailId:userEmail});
+  //   res.send(user);
+
+  // }
+  // catch(err){
+  //   res.status(404).send("something went wrong");
+  // }
+  const userEmail = req.body.emailId;
+  try {
+    const users = await User.find({ emailId: userEmail });
+    if (users.length === 0) {
+
+      res.status(404).send("user not found haha");  //to stop further execution of the code block.  It will not reach the catch block.  It's a way to avoid unhandled promise rejection error.
+    }
+    else {
+      res.send(users);
+    }
+
+  }
+  catch (err) {
+    res.status(404).send("user not found");
+  }
+
+
+});
+
+app.delete("/user", async (req, res) => {
+  const userId = req.body.userId;
+  try {
+    const user = await User.findByIdAndDelete(userId);
+    res.send("user deleted successfully");
+  }
+  catch (e) {
+    res.status(404).send("somethig went wrong");
+  }
+});
+//feed API -GET/feed -get all the users from the database
+app.get("/feed", async (req, res) => {
+  try {
+    const users = await User.find({});
+    res.send(users);
+
+  } catch (err) {
+
+    res.status(404).send("something went wrong");
+  }
+});
+```
+
+## what is express Router
+- express router is a way of organising  and managing routes of our application
+
+## why to use express.Router??
+
+- when the application grows and we have lot api to call   then to manage all the routes in a single file becomes hard  so router which have same routes are grouped together in  a seperate file.
+- it makes our code clean and maintaiable
+
+
+## how to create a  express router??
+
+we can create a router using  express.Router() function and attach  the router to it.
+
+- **we have created a routes folder> then in which we have three folder 1.auth.js 2.profile.js 3.request.js**
+
+- in auth.js we  have given the authentication part like login and singup
+
+```javascript
+ const express=require('express');
+ //this is how we import express.Router()
+ const authRouter=express.Router();
+ const { validateSignUpData } = require("../utils/validation");
+ const bcrypt = require("bcrypt");
+ const User = require("../models/user");
+
+//here we need to write name of router jaise yha authRouter hai (peheley app.post) likhte the
+authRouter.post("/signup", async (req, res) => {
+  try {
+
+    //validation of data
+    validateSignUpData(req);
+    const {firstName, lastName, emailId, password } = req.body;
+
+    //encrypt the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log(hashedPassword);
+    const user = new User({ firstName, lastName, emailId, password: hashedPassword });
+
+    console.log(user);
+    await user.save();
+    res.send("user added successfully");
+  }
+  catch (err) {
+    res.status(400).send("Error : " + err.message
+
+    );
+  }
+
+});
+authRouter.post("/login",async(req, res)=>{
+  try{
+const {emailId, password} = req.body;
+const user= await User.findOne({ emailId: emailId});
+if(!user)
+{  
+  throw new Error("email is  not present in DB");
+}
+const isPasswordValid=await user.validatePassword(password );
+ if(isPasswordValid) 
+ {
+   //create a jwt token
+   const token=await user.getJWT();
+
+   //add the token to the cookie and send back to the user
+   res.cookie("token",token,{expires:new Date(Date.now()+8*3600000)});
+  res.send("login sucessfully");
+ }
+ else{
+  throw new Error("password is not correct");
+ }
+}
+  catch(err){
+    res.status(400).send("Error : "+err.message);
+  }
+});
+
+module.exports=authRouter;
+
+```
+
+- **in app.js the changes we like**
+we need to just import
+```javascript
+const authRouter=require("./routes/auth");
+app.use("/",authRouter);
+```
+we just connect the router just like we connect with middleware using `app.use`
+- first it will see the slash then it go to the router which is called
+- suppose hmme profile api call kri then sbse pehle slash me jayega fir wo sab me check krega ki ki profile kisme hai then milne ke baad uska result de degaa
+
+- for more details click on this [link](https://expressjs.com/en/5x/api.html)
+
+## Logic for Logic Api
+```javascript
+authRouter.post("/logout", async(req,res)=>{
+    try {
+        res.cookie("token",null,{expires:new Date(Date.now())});
+        res.send("logout sucessfully");
+        
+    } catch (error) {
+        res.status(401).send("Error: " + error.message);
+        
+    }
+})
+```
+- added validationEditProfileData in validation.js
+```javascript
+const validateEditProfileData=(req)=>{
+
+    const allowdedEditFields=
+    ["firstName", 
+        "LastName",
+        "emailId",
+        "photoURL",
+        "gender",
+        "about",
+        "skills"];
+const isEditAllowed=Object.keys(req.body).every((field)=>
+    allowdedEditFields.includes(field)
+);
+
+return isEditAllowed;
+};
+```
+- **now changes in profile.js which is edit**
+```javascript
+const express = require("express");
+const {UserAuth}=require("../middlewares/auth");
+const { validateEditProfileData } = require("../utils/validation");
+const profileRouter=express.Router();
+
+profileRouter.get("/profile/view",UserAuth,async(req,res)=>{
+    try {
+    const user=req.user;
+    res.send(user);
+    
+    } catch (error) {
+      res.status(400).send("error:" +error.message);
+      
+    } 
+  });
+  profileRouter.patch("/profile/edit", UserAuth ,async(req, res) => {
+
+    try {
+      if(!validateEditProfileData(req))
+        {
+        throw new Error("invalid edit request");
+      }
+      const loggedInUser=req.user;
+      Object.keys(req.body).forEach((key)=>(loggedInUser[key]=req.body[key]));
+       await loggedInUser.save();
+  
+    
+       res.json({
+        message: `${loggedInUser.firstName}, your profile updated successfuly`,
+        data: loggedInUser,
+    });
+  } 
+    catch (e) {
+      res.status(400).send("something went wrong :" + e.message);
+    }
+  },
+  );
+
+  module.exports=profileRouter;
+  ```
+
+  - now we need to create a schema for a connectionRequest in which we have fromUserId and toUserId
+
+### how do you reference the ObjectId in schema??
+- the type of objectId is `"mongoose.Schema.Types.ObjectId.`
+
+- ye _id se check krega user ko kisko req bheji kisko swap kra
+
+```javascript
+const mongoose = require('mongoose');
+const connectionRequestSchema=new mongoose.Schema(
+    {
+        fromUserId:{
+            type: mongoose.Schema.Types.ObjectId,
+           reqired: true,
+        },
+        toUserId:{
+            type: mongoose.Schema.Types.ObjectId,
+            reqired: true,
+        },
+        status:{
+            type:String,
+            enum:{
+                values:["ignore","interested","accepted","rejected"],
+                message: `{VALUE} is incorrect status type`,
+            },
+        },
+    },
+    {
+        timestamps:true, 
+    }
+);
+
+const connectionRequest=new mongoose.model("ConnectionRequest", connectionRequestSchema);
+
+module.exports=connectionRequest;
+
+```
+
+- routes>request.js will look like this.
+
+
+**1.Importing the necessary modules**
+```javascript
+const express = require('express');
+const { UserAuth } = require('../middlewares/auth');
+const requestRouter = express.Router();
+const ConnectionRequest = require("../models/connectionRequest");
+const User = require("../models/user"); // Assuming this is the user model
+```
+- `express.Router():` Creates a new router instance for handling requests specific to connection requests.
+- ` UserAuth:` Middleware to protect the route and ensure only authenticated users can make a connection request.
+- `ConnectionRequest:` Mongoose model representing the connection request entity.
+- `User:` A reference to the User model (assuming it is defined elsewhere), which will be used to check if the recipient user exists.
+
+2. #### Defining the POST Route
+```js
+requestRouter.post("/request/send/:status/:toUserId", UserAuth, async (req, res) => {
+  ```
+- `/request/send/:status/:toUserId`: This is the route's endpoint. It's dynamic due to the :status and :toUserId parameters.
+`:status:` Status of the connection request, which can be either "ignored" or "interested".
+`:toUserId:` The ID of the user to whom the connection request is being sent.
+- `UserAuth middleware:` Ensures the user is authenticated before processing the request.
+
+3. #### Extracting Key Parameters
+```js
+const fromUserId = req.user._id;
+const toUserId = req.params.toUserId;
+const status = req.params.status;
+```
+
+- **fromUserId:** Extracted from req.user, which is set by the UserAuth middleware. This represents the ID of the user sending the connection request.
+
+- **toUserId:**  Extracted from the route parameter (req.params.toUserId). This is the ID of the user who will receive the connection request.
+
+- **status:** The status of the connection request, also extracted from the route parameter.
+
+4. ### Validating the Status
+```js
+
+const allowedStatus = ["ignored", "interested"];
+if (!allowedStatus.includes(status)) {
+  const toUser = await User.findById(toUserId);
+  if (!toUser) {
+    return res.status(400).json({ message: "User not found" });
+  }
+}
+```
+- **allowedStatus:** This is an array containing the only valid statuses: "ignored" and "interested".
+- **Validation:** The code checks whether the provided status is one of the allowed values.
+- If the status is invalid, the code proceeds to verify if the recipient user (toUser) exists in the database using User.findById(toUserId).
+- If the recipient user does not exist, it returns a 400 Bad Request response with the message "User not found".
+**Key Reason for This Check:**
+The status validation ensures that the user is sending a valid type of connection request (either ignoring or showing interest). Additionally, it ensures that the recipient user exists in the system before proceeding, which prevents sending connection requests to nonexistent users.
+
+5. #### Checking for Existing Connection Requests
+```js
+const existingConnectionRequest = await ConnectionRequest.findOne({
+  $or: [
+    { fromUserId, toUserId },
+    { fromUserId: toUserId, toUserId: fromUserId }
+  ]
+});
+
+if (existingConnectionRequest) {
+  return res.status(400).json({ message: "Request already sent" });
+}
+```
+- **findOne()**: This query searches the database for any existing connection requests between the fromUserId and toUserId:
+
+- **Case 1:** If the current user (fromUserId) has already sent a request to toUserId.
+- **Case-2:** If the current user (fromUserId) has already received a request from toUserId (i.e., a reversed relationship).
+
+- If an existing connection request is found in either direction, a 400 Bad Request response is returned with the message "Request already sent".
+**Key Reason for This Check:**
+This prevents duplicate connection requests between the same two users. It ensures that users cannot keep spamming or sending multiple connection requests to the same person.
+
+6. #### Creating and Saving the Connection Request
+```js
+
+const connectionRequest = new ConnectionRequest({
+  fromUserId,
+  toUserId,
+  status
+});
+```
+- **new ConnectionRequest({...}):** Creates a new instance of the ConnectionRequest model, which represents a new connection request. The request contains the following fields:
+**fromUserId:** The ID of the user sending the request.
+**toUserId:** The ID of the recipient.
+**status:** The status of the request ("ignored" or "interested").
+7. #### Saving the Request to the Database
+```js
+const data = await connectionRequest.save();
+```
+- **save():** The save() method is called on the newly created ConnectionRequest instance, which writes the request to the database.
+
+8. #### Sending the Success Response
+```js
+res.json({
+  message: "Connection request sent successfully",
+  data
+});
+```
+- If the request is successfully saved, a JSON response is sent back to the client with a success message and the saved data (i.e., the connection request details).
+9. #### Error Handling
+```js
+} catch (error) {
+  res.status(400).send("Error: " + error.message);
+}
+```
+- **try-catch block:** The entire operation is wrapped in a try-catch block to handle any potential errors.
+
+- If an error occurs at any point in the process (e.g., database errors, invalid parameters), the server responds with a 400 Bad Request status and the error message.
+
+### Summary of Key Steps
+**Authentication:** The user must be authenticated to send a connection request (`UserAuth`middleware).
+**Validation:** The status of the request must be either "ignored" or "interested".
+Check User Existence: If the status is invalid, the system verifies whether the recipient user (toUser) exists.
+**Prevent Duplicate Requests:** The code checks if a request already exists between the two users, either in the sent or received direction.
+**Create and Save:** If all checks pass, a new connection request is created and saved in the database.
+**Error Handling:** The code handles errors, ensuring that meaningful error messages are sent to the client.
+
+
+### One more validation of if a user sending connection request to himself
+
+- i can do it request.js but now i am doing it on schema of connectionRequest.js(that is model)
+```js
+connectionRequestSchema.pre("save", function(next){
+    const connectionRequest=this;
+    //check if fromUserId is same as toUserId
+    if(connectionRequest.fromUserId.equals(connectionRequest.toUserId))
+    {
+        throw new Error("cannot send connection request to yourself");
+    }
+    next();
+});
+```
+- the code  provided is a Mongoose middleware function that is executed before a ConnectionRequest document is saved to the database. This function ensures that users cannot send connection requests to themselves
+
+- connectionRequestSchema.pre('save', ...): This is a Mongoose `pre-save hook.`
+
+- The **pre-save** hook is middleware that runs before the save() method is executed on a Mongoose model (in this case, ConnectionRequest).
+- This means that the function will be triggered every time a ConnectionRequest is about to be saved to the database, ensuring that additional logic (like validation) is executed.
+
+**next()** is called if the validation passes (i.e., fromUserId is not equal to toUserId).
+
+- This function moves on to the next middleware in the Mongoose lifecycle (or proceeds to save the document if no further middleware is defined).
+
+- If next() is not called, the save operation will not complete, so it's crucial to invoke it if everything is correct.
+
+**schema.index()** to define indexes on your schema. This method allows you to create indexes programmatically when defining a schema, instead of manually using the createIndex() method on the collection.
+
+#### Example of schema.index()
+
+Here’s how you can use schema.index() to define an index on a Mongoose schema:
+
+```js
+const mongoose = require('mongoose');
+
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  age: { type: Number }
+});
+
+// Create an index on the 'username' field in ascending order
+userSchema.index({ username: 1 });
+
+// Create a compound index on 'username' (ascending) and 'age' (descending)
+userSchema.index({ username: 1, age: -1 });
+
+// Define a unique index on 'email'
+userSchema.index({ email: 1 }, { unique: true });
+
+const User = mongoose.model('User', userSchema);
+```
+#### Key Points:
+**schema.index():** This is used to create indexes directly on the schema level.
+
+**Compound Index:** You can create an index on multiple fields by passing multiple field names to schema.index().
+
+**Options:** You can pass additional options, such as
+` { unique: true }`, to enforce uniqueness or other constraints.
+
+#### Why use schema.index()?
+
+**Automated:** Mongoose will automatically create these indexes when the application connects to the database.
+
+**Schema-Level Indexing:** It keeps index definitions close to the schema definition, improving readability and maintainability.
+Example of Compound Index with Unique Constraint:
+```js
+userSchema.index({ username: 1, email: 1 }, { unique: true });
+```
+- This compound index ensures that both username and email are unique together, meaning the same combination cannot appear twice in the collection.
+
+#### When to Use schema.index():
+
+**Performance**: Use indexing to optimize query performance, especially for frequently queried fields.
+
+**Constraints:** Use unique indexes to enforce constraints on fields like email or username.
 
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+ 
 
 
 
