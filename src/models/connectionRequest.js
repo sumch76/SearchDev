@@ -3,11 +3,11 @@ const connectionRequestSchema=new mongoose.Schema(
     {
         fromUserId:{
             type: mongoose.Schema.Types.ObjectId,
-           reqired: true
+           required: true,
         },
         toUserId:{
             type: mongoose.Schema.Types.ObjectId,
-            reqired: true
+            required: true,
         },
         status:{
             type:String,
@@ -15,10 +15,21 @@ const connectionRequestSchema=new mongoose.Schema(
                 values:["ignore","interested","accepted","rejected"],
                 message: `{VALUE} is incorrect status type`,
             },
-
         },
     },
     {
-        timestamps:true,
+        timestamps:true, 
     }
 );
+connectionRequestSchema.pre("save", function(next){
+    const connectionRequest=this;
+    //check if fromUserId is same as toUserId
+    if(connectionRequest.fromUserId.equals(connectionRequest.toUserId))
+    {
+        throw new Error("cannot send connection request to yourself");
+    }
+    next();
+});
+const ConnectionRequest=new mongoose.model("ConnectionRequest", connectionRequestSchema);
+
+module.exports=ConnectionRequest;
