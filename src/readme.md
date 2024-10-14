@@ -1601,6 +1601,19 @@ if (existingConnectionRequest) {
 **Key Reason for This Check:**
 This prevents duplicate connection requests between the same two users. It ensures that users cannot keep spamming or sending multiple connection requests to the same person.
 
+**Condition 1:** { fromUserId, toUserId }
+This shorthand { fromUserId, toUserId } is equivalent to writing:
+```js
+{ fromUserId: fromUserId, toUserId: toUserId }
+```
+- This checks if there is a connection request where the fromUserId is equal to the fromUserId of the current user and the toUserId is equal to the toUserId of the other user.
+- In other words, this condition checks if you (the current user) have sent a connection request to the other user.
+**Condition 2:** `{ fromUserId: toUserId, toUserId: fromUserId }`
+
+- This condition reverses the fields. 
+- It checks if there is a connection request where the fromUserId is the toUserId of the current user and the toUserId is the fromUserId of the current user.
+- In other words, this condition checks if the other user has already sent a connection request to you (the current user).
+
 6. #### Creating and Saving the Connection Request
 ```js
 
