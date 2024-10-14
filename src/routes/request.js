@@ -65,8 +65,8 @@ requestRouter.post(
                 toUserId:loggedInUser._id,
                 status:"interested",
             }
-        );
-        if(!connectionRequest)
+        ); 
+        if(!connectionRequest) 
         {
             return res.status(404).json({message:"Request not found"});
         }
