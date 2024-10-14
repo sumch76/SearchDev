@@ -1660,6 +1660,7 @@ Check User Existence: If the status is invalid, the system verifies whether the 
 **Error Handling:** The code handles errors, ensuring that meaningful error messages are sent to the client.
 
 
+
 ### One more validation of if a user sending connection request to himself
 
 - i can do it request.js but now i am doing it on schema of connectionRequest.js(that is model)
@@ -1738,12 +1739,371 @@ userSchema.index({ username: 1, email: 1 }, { unique: true });
 
 **Constraints:** Use unique indexes to enforce constraints on fields like email or username.
 
+### The $and Operator
+- The $and operator is used to match documents that satisfy all of the conditions specified. It requires that all the conditions be true for a document to be included in the result set.
+
+**Syntax:**
+```js
+{ $and: [ { condition1 }, { condition2 }, ... ] }
+```
+**Example:**
+- Let’s say you want to find users whose age is greater than 25 and whose status is "active":
+
+```js
+db.users.find({
+  $and: [
+    { age: { $gt: 25 } },
+    { status: "active" }
+  ]
+});
+```
+**In this query:**
+
+- It will return users who are both older than 25 and have the status "active".
+
+**How $and works:**
+
+- All conditions must be true for the document to be returned.
+- Useful when you need multiple conditions to be satisfied simultaneously.
+
+### The $or Operator
+- The $or operator is used to match documents that satisfy at least one of the conditions specified. It takes an array of conditions, and if any of them are true, MongoDB returns the document.
+
+**Syntax:**
+
+```js
+{ $or: [ { condition1 }, { condition2 }, ... ] }
+```
+**Example:**
+
+- Suppose you have a users collection and you want to find users who either have the name "Alice" or the age is greater than 25:
+
+```js
+db.users.find({
+  $or: [
+    { name: "Alice" },
+    { age: { $gt: 25 } }
+  ]
+});
+```
+**In this query:**
+
+- It will return users whose name is "Alice" or whose age is greater than 25.
+
+**How `$or` works:**
+
+- If either condition is true, the document is included in the result set.
+
+- It's useful when you want to search for documents that match one condition or another.
 
 
 
+## EPISODE 13
+
+**Write code with proper validation for` POST /request/review/:status/:requestId`.**
+```javascript
+requestRouter.post("/request/review/:status/:requestId",UserAuth,async(req,res)=>
+{
+    try{
+        const  loggedInUser=req.user;
+        const {status, requestId}=req.params;
+        const allowdedStatus=["accepted","rejected"];
+        if(!allowdedStatus.includes(status))
+        {
+            return res.status(400).json({message:"status is not allowded"});
+        }
+        const connectionRequest=await ConnectionRequest.findOne(
+            {
+                _id:requestId,
+                toUserId:loggedInUser._id,
+                status:"interested",
+            }
+        ); 
+        if(!connectionRequest) 
+        {
+            return res.status(404).json({message:"Request not found"});
+        }
+connectionRequest.status=status;
+const data = await connectionRequest.save();
+  res.json({message:"Connection Request " +status,data});
+
+    }
+    catch(err){
+        res.status(400).send("Error: "+err.message);
+    }
+})
+```
+
+- **now i moving to the user level authentication**
+```javascript
+const express=require('express');
+const userRouter=express.Router();
+const {UserAuth}=require('../middlewares/auth');
+const ConnectionRequest=require("../models/connectionRequest");
+
+userRouter.get("/user/requests/received",UserAuth,async(req,res)=>
+{
+    try {
+        const loggedInUser=req.user;
+        const connectionRequest = await ConnectionRequest.find({
+            toUserId: loggedInUser._id,
+            status:"interested",
+        }).populate("fromUserId",["firstName","lastName"]);
+
+        res.json({
+            message: "data fetched successfully",
+            data: connectionRequest,
+        });
+    } catch (error) {
+        res.status(400).send("error:" +error.message);
+        
+    }
+});
+userRouter.get("/user/connections",UserAuth,async(req,res)=>
+{
+    try{
+        const loggedInUser=req.user;
+        const connectionRequest = await ConnectionRequest.find({
+            $or: [
+                {fromUserId: loggedInUser._id,status: 'accepted'},
+                {toUserId: loggedInUser._id,status: 'accepted'},
+            ],
+        }).populate("fromUserId",["firstName","lastName"]).populate("toUserId",["firstName","lastName"]);
+
+      const data=connectionRequest.map((row)=>
+      {
+        if(row.fromUserId._id.toString() === loggedInUser._id.toString())
+        {
+            return row.toUserId;
+        }
+        return row.fromUserId
+    });
+        res.json({
+            data
+        });
+    }
+    catch(err){
+        res.status(400).send("Error : "+err.message);
+    }
+})
 
 
+module.exports =userRouter;
+```
+### 1.First Route: /user/requests/received
+- This route handles GET requests to fetch the connection requests that the logged-in user has received from other users, but only those that have a status of "interested."
 
+**Code Breakdown:**
+```js
+userRouter.get("/user/requests/received", UserAuth, async (req, res) => {
+    try {
+        const loggedInUser = req.user;
+        const connectionRequest = await ConnectionRequest.find({
+            toUserId: loggedInUser._id,
+            status: "interested",
+        }).populate("fromUserId", ["firstName", "lastName"]);
+
+        res.json({
+            message: "data fetched successfully",
+            data: connectionRequest,
+        });
+    } catch (error) {
+        res.status(400).send("error:" + error.message);
+    }
+});
+```
+**Key Parts:**
+
+`UserAuth middleware:` This middleware ensures that the user making the request is authenticated (i.e., logged in). If the user is not authenticated, the request will be rejected.
+
+`loggedInUser = req.user:` This retrieves the currently logged-in user's information from the request object, which is typically set by the UserAuth middleware.
+
+`ConnectionRequest.find()`: This query searches the ConnectionRequest collection for connection requests that meet two conditions:
+
+- The toUserId matches the logged-in user's _id, meaning this user is the recipient of the request.
+
+- The status is **"interested"**, meaning the request is currently in a state where the other user is interested in connecting.
+
+- `populate("fromUserId", ["firstName", "lastName"])`: This is an important feature of Mongoose called "population."
+- The fromUserId is a reference to another collection (likely the User collection).
+- The populate function replaces the fromUserId (which is just an ID) with the actual user data. In this case, it populates only the firstName and lastName fields of the user who sent the request.
+
+#### What Happens Without the populate:
+
+>Without the populate function, the response will contain just the fromUserId field as an ObjectId. The client would not get the sender’s first name and last name unless an additional query is made.
+
+### 2. Second Route: `/user/connections`
+This route handles GET requests to fetch all the accepted connection requests involving the logged-in user, whether the user sent or received the request.
+
+**Code Breakdown:**
+```js
+userRouter.get("/user/connections", UserAuth, async (req, res) => {
+    try {
+        const loggedInUser = req.user;
+        const connectionRequest = await ConnectionRequest.find({
+            $or: [
+                { fromUserId: loggedInUser._id, status: 'accepted' },
+                { toUserId: loggedInUser._id, status: 'accepted' },
+            ],
+        })
+        .populate("fromUserId", ["firstName", "lastName"])
+        .populate("toUserId", ["firstName", "lastName"]);
+
+        const data = connectionRequest.map((row) => {
+            if (row.fromUserId._id.toString() === loggedInUser._id.toString()) {
+                return row.toUserId;
+            }
+            return row.fromUserId;
+        });
+
+        res.json({ data });
+    } catch (err) {
+        res.status(400).send("Error: " + err.message);
+    }
+});
+```
+**Key Parts:**
+
+`UserAuth middleware:` Again, this ensures that only authenticated users can access this route.
+
+`ConnectionRequest.find():` 
+- This query searches the ConnectionRequest collection for any connection requests that involve the logged-in user. 
+- It uses the $or operator to check two possible scenarios:
+
+- The logged-in user is the fromUserId (i.e., they sent the connection request), and the status is "accepted".
+- The logged-in user is the toUserId (i.e., they received the connection request), and the status is "accepted".
+- This ensures that the user can see all accepted connections, regardless of who initiated the connection.
+
+**`populate("fromUserId", ["firstName", "lastName"])`** and populate
+**`("toUserId", ["firstName", "lastName"])`**: 
+- This populates both the fromUserId and toUserId with the respective users' first and last names, instead of just returning their ObjectId.
+
+### Mapping the connections:
+
+```javascript
+const data = connectionRequest.map((row) => {
+    if (row.fromUserId._id.toString() === loggedInUser._id.toString()) {
+        return row.toUserId;
+    }
+    return row.fromUserId;
+});
+```
+- This code checks whether the logged-in user was the sender (fromUserId) or the recipient (toUserId) of the connection request.
+
+- If the logged-in user sent the request (fromUserId is equal to loggedInUser._id), then the code returns the toUserId (the other user in the connection).
+
+- If the logged-in user received the request (toUserId is equal to loggedInUser._id), then it returns the fromUserId (the other user in the connection).
+
+- This ensures that the response contains only the other user (the one the logged-in user is connected to), not the logged-in user's own information.
+
+### Why the if condition is needed:
+- Without the if condition inside the .map() function, the response would return both the sender and the recipient in each connection request. `However, the purpose of this endpoint is to show the other user in the connection, not the logged-in user.`
+
+- The condition ensures that only the other user involved in the connection request is returned.
+
+### What is ref in Mongoose?
+
+- In Mongoose, the ref option is used to specify which model (collection) the referenced field is related to. 
+- This is helpful in scenarios where `documents in one collection need to reference documents in another collection,` creating a relationship between them.
+
+- When you define a field with a ref in a Mongoose schema, that field stores an ObjectId that references a document in another collection. Later, you can use Mongoose's populate() method to retrieve the actual documents associated with those ObjectIds.
+
+### Example of ref in Mongoose
+
+- Let’s say you have two collections: User and Post. Each post is created by a user, so the Post collection should reference the User collection. This is how you would set up the relationship using ref:
+
+
+**User Schema:**
+```js
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+
+const userSchema = new Schema({
+    firstName: String,
+    lastName: String,
+    email: String,
+});
+
+const User = mongoose.model('User', userSchema);
+module.exports = User;
+```
+
+### Post Schema (with ref):
+```js
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+
+const postSchema = new Schema({
+    title: String,
+    body: String,
+    author: {
+        type: Schema.Types.ObjectId,  // Reference to another document's ObjectId
+        ref: 'User',  // Model that this ObjectId refers to
+    },
+});
+
+const Post = mongoose.model('Post', postSchema);
+module.exports = Post;
+```
+**In this example**:
+
+- The author field in the Post schema is of type Schema.Types.ObjectId. This is the ID of a document in the User collection.
+
+- **The ref:** 'User' tells Mongoose that the author field refers to the User model, meaning the value of author is an ObjectId that points to a User document.
+
+### How to Use populate() with ref
+
+- When you query the Post model, the author field will initially contain only the ObjectId of the user who created the post. However, you can use the populate() method to automatically fetch and include the entire user document related to that ObjectId.
+
+**Query Example with populate()**
+```js
+const Post = require('./models/Post');
+
+async function getPostWithAuthor(postId) {
+    const post = await Post.findById(postId).populate('author', 'firstName lastName');
+    console.log(post);
+}
+
+getPostWithAuthor('634a2fbf509c710128d9fb28');
+```
+**In this query:**
+
+**populate('author'):**
+ - This tells Mongoose to replace the author field (which contains an ObjectId) with the actual User document it refers to.
+
+- 'firstName lastName': This specifies which fields from the User model you want to include in the result.
+
+ **Result without populate()**
+
+- Without populate(), the result of the query would look like this:
+
+```json
+{
+    "_id": "634a2fbf509c710128d9fb28",
+    "title": "My First Post",
+    "body": "This is the body of my post",
+    "author": "634a2f9e509c710128d9fb27"  // Only ObjectId, not user details
+}
+```
+
+**Result with populate()**
+
+- With populate(), the author field will contain the full user data:
+```json
+{
+    "_id": "634a2fbf509c710128d9fb28",
+    "title": "My First Post",
+    "body": "This is the body of my post",
+    "author": {
+        "_id": "634a2f9e509c710128d9fb27",
+        "firstName": "John",
+        "lastName": "Doe"
+    }
+}
+```
+
+
+ 
 
 
 
