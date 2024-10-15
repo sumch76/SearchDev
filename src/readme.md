@@ -670,7 +670,7 @@ app.patch("/user",async(req,res)=>
         "lastName": "singh"
 }
  ```
-# EPISODE 8
+# EPISODE 8⬇️
 
 
 ### custom validator
@@ -775,7 +775,7 @@ app.patch("/user",async(req,res)=>
 
 - [for more details of validator click on this](https://www.npmjs.com/package/validator)
 
-## Episode 9
+## Episode 9⬇️⬇️
 
 - for validation we can create a new file where we can put our all validation and pass as a function inside the api call.
 
@@ -2101,6 +2101,15 @@ getPostWithAuthor('634a2fbf509c710128d9fb28');
     }
 }
 ```
+
+
+## EPISODE 14
+
+- user should see all the user card except-
+1. his own card
+2. his connections
+3. ignored people
+4. already sent the  connection request.
 
 
  
