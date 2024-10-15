@@ -2208,7 +2208,104 @@ const posts = await Post.find()
 
 
 
- 
+ **Code Breakdown of**⬇️
+
+### userRouter.get("/feed",UserAuth,async(req,res)):
+
+- This sets up a route /feed with UserAuth middleware to ensure the user is authenticated. Once authenticated, the async function runs.
+
+**Extracting Logged-in User:**
+
+```js
+const loggedInUser = req.user;
+```
+
+- The req.user contains the authenticated user object. This user’s ID is used to filter connections and determine which users should not appear in the feed.
+
+### Pagination Logic:
+
+```js
+const page = parseInt(req.query.page) || 1;
+let limit = parseInt(req.query.limit) || 10;
+limit = limit > 50 ? 50 : limit;
+const skip = (page - 1) * limit;
+```
+- Pagination is implemented here. page and limit are query parameters from the request.
+- If page or limit are not provided, default values are used (page = 1 and limit = 10).
+- The limit is capped at 50 to prevent too much data from being loaded at once.
+- skip determines how many documents should be skipped based on the page number. It helps in returning the correct page.
+
+**Fetching Connection Requests:**
+
+```js
+const connectionRequest = await ConnectionRequest.find({
+    $or: [
+        { fromUserId: loggedInUser._id },
+        { toUserId: loggedInUser._id },
+    ], 
+}).select("fromUserId toUserId");
+```
+- It fetches connection requests related to the logged-in user (either sent by or received by the user).
+
+- The select method limits the returned fields to fromUserId and toUserId to reduce unnecessary data fetching.
+
+**Building the hideUsersFromFeed Set:**
+
+```js
+const hideUsersFromFeed = new Set();
+connectionRequest.forEach((req) => {
+    hideUsersFromFeed.add(req.fromUserId.toString());
+    hideUsersFromFeed.add(req.toUserId.toString());
+});
+```
+- A Set is used to collect IDs of users involved in the connection requests. 
+- This ensures that these users will be hidden from the feed since they are already connected or pending connection.
+
+**Filtering Users for the Feed:**
+
+```js
+const users = await User.find({
+    $and: [
+        { _id: { $nin: Array.from(hideUsersFromFeed) } },
+        { _id: { $ne: loggedInUser._id } },
+    ],
+}).select("firstName" "lastName")
+.skip(skip)
+.limit(limit);
+```
+>
+The User.find query fetches users who:
+
+- Are not in the hideUsersFromFeed set ($nin operator).
+- Are not the logged-in user ($ne: loggedInUser._id).
+- select is used to fetch only firstName and lastName.
+- Pagination is applied using skip and limit.
+
+**Response:**
+
+```js
+Copy code
+res.json({ data: users });
+```
+`The filtered user list is sent back as a JSON response.`
+Error Handling:
+
+```js
+catch (error) {
+    res.status(400).send("error:" + error.message);
+}
+```
+- If any error occurs, a 400 status code is returned with the error message.
+
+**Why This Logic is Used**
+
+**Pagination:** Without it, the entire list of users would be returned, potentially overwhelming the server and client with too much data.
+
+**Hiding Connected Users:**
+ - The logic using ConnectionRequest prevents showing users that the logged-in user is already connected to or has sent/received a connection request from.
+ - Without this, the user might see people they are already connected with, which defeats the purpose of a "new connections" feed.
+
+
 
 
 
