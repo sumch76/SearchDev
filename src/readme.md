@@ -11,6 +11,75 @@ app.listen(3000,()=>{
 
 - it wll always show a "hello from the server" whatevr be the request i.e if i write  `localhost:3000/hello` it will show the hello from the server
 
+
+### to change this we have to do changes on the code 
+
+```javascript
+const express=require("express");
+const app=express();
+app.use("/home "(req,res)=>{
+    res.send("hello from the server");
+});
+app.listen(3000,()=>{
+    console.log("server is successfully listening on port 3000..");
+    
+});
+```
+- while doing this i am getting response on `http://localhost:3000/home  `  not on `http://localhost:3000 ` it shows cannot get
+
+`we need to create different different routes`
+> ### `app.get()` is used for handling specific GET requests. This way, /home and /contact won't be affected by the root path /.
+
+>### `app.use()` is for middleware and will trigger for every route if the base path matches. In your case, app.use("/", ...) matches every route since all routes are prefixed with /.
+
+
+## Difference between  Caret (`^`) vs. Tilde (`~`)
+
+>### In JavaScript (specifically in the context of package management with npm or yarn), the caret (^) and tilde (~) symbols are used in package.json to specify version ranges. They indicate how flexible the versioning of a package is when you're installing dependencies.
+
+## `1.Caret (^):`
+- #### The caret symbol allows updates to non-breaking changes based on semver (Semantic Versioning) rules.
+- #### It allows updates to `minor and patch versions` but not major versions.
+## Example:
+
+```
+"lodash": "^4.17.0"
+```
+- #### This means that the version can update to anything from 4.17.0 to <5.0.0.
+- #### It will allow updates like 4.17.1, 4.18.0, etc., but not 5.0.0 because a major version change may introduce breaking changes.
+
+## In summary:
+---
+
+- #### ^1.2.3 allows updates to any version >=1.2.3 and <2.0.0.
+- #### ^0.2.3 (if the major version is 0) allows updates to >=0.2.3 and <0.3.0 (no major version bump when the major version is 0).
+
+## `2. Tilde (~):`
+- The tilde symbol allows updates to the patch version, but not the minor or major version.
+It only allows updates within the same minor version.
+
+### **Example**:
+
+```
+"lodash": "~4.17.0"
+```
+- #### This means the version can update to anything from 4.17.0 to <4.18.0.
+- #### It will allow updates like 4.17.1, 4.17.2, etc., but not 4.18.0 because the minor version must stay the same.
+
+### In summary:
+
+- #### ~1.2.3 allows updates to >=1.2.3 and <1.3.0.
+- #### ~0.2.3 allows updates to >=0.2.3 and <0.3.0.
+
+### Key Differences:
+
+- #### Caret (^) is more permissive and allows updates to both minor and patch versions.
+- #### Tilde (~) is more restrictive and only allows updates to patch versions within the same minor version.
+
+## When to use:
+- ### `Use caret (^)` when you're okay with` both minor and patch updates`, trusting the package won't introduce breaking changes.
+- ### `Use tilde (~)` when you want to restrict updates to `only patch versions`, ensuring more stability
+
 ## Detailed exploration of +, *, and ? in Express.js route paths, including use cases, practical examples, and potential pitfalls.
 
 ### 1. The + Symbol: Match One or More of the Preceding Character
@@ -133,77 +202,9 @@ app.get('/blog/*?', (req, res) => {
 - This route will match /blog, /blog/, and any other path starting with /blog/, followed by any characters (like /blog/post/123).
 ----
 
-### to change this we have to do changes on the code 
-
-```javascript
-const express=require("express");
-const app=express();
-app.use("/home "(req,res)=>{
-    res.send("hello from the server");
-});
-app.listen(3000,()=>{
-    console.log("server is successfully listening on port 3000..");
-    
-});
-```
-- while doing this i am getting response on `http://localhost:3000/home  `  not on `http://localhost:3000 ` it shows cannot get
-
-`we need to create different different routes`
-> ### `app.get()` is used for handling specific GET requests. This way, /home and /contact won't be affected by the root path /.
-
->### `app.use()` is for middleware and will trigger for every route if the base path matches. In your case, app.use("/", ...) matches every route since all routes are prefixed with /.
-
-
-## Difference between  Caret (`^`) vs. Tilde (`~`)
-
->### In JavaScript (specifically in the context of package management with npm or yarn), the caret (^) and tilde (~) symbols are used in package.json to specify version ranges. They indicate how flexible the versioning of a package is when you're installing dependencies.
-
-## `1.Caret (^):`
-- #### The caret symbol allows updates to non-breaking changes based on semver (Semantic Versioning) rules.
-- #### It allows updates to `minor and patch versions` but not major versions.
-## Example:
-
-```
-"lodash": "^4.17.0"
-```
-- #### This means that the version can update to anything from 4.17.0 to <5.0.0.
-- #### It will allow updates like 4.17.1, 4.18.0, etc., but not 5.0.0 because a major version change may introduce breaking changes.
-
-## In summary:
----
-
-- #### ^1.2.3 allows updates to any version >=1.2.3 and <2.0.0.
-- #### ^0.2.3 (if the major version is 0) allows updates to >=0.2.3 and <0.3.0 (no major version bump when the major version is 0).
-
-## `2. Tilde (~):`
-- The tilde symbol allows updates to the patch version, but not the minor or major version.
-It only allows updates within the same minor version.
-
-### **Example**:
-
-```
-"lodash": "~4.17.0"
-```
-- #### This means the version can update to anything from 4.17.0 to <4.18.0.
-- #### It will allow updates like 4.17.1, 4.17.2, etc., but not 4.18.0 because the minor version must stay the same.
-
-### In summary:
-
-- #### ~1.2.3 allows updates to >=1.2.3 and <1.3.0.
-- #### ~0.2.3 allows updates to >=0.2.3 and <0.3.0.
-
-### Key Differences:
-
-- #### Caret (^) is more permissive and allows updates to both minor and patch versions.
-- #### Tilde (~) is more restrictive and only allows updates to patch versions within the same minor version.
-
-## When to use:
-- ### `Use caret (^)` when you're okay with` both minor and patch updates`, trusting the package won't introduce breaking changes.
-- ### `Use tilde (~)` when you want to restrict updates to `only patch versions`, ensuring more stability
------
-----
 
 ## - episode 6 
+
 ```javascript
 const express = require("express");
 const app = express();
@@ -316,7 +317,7 @@ const mongoose=require('mongoose');
 const connectDB=async()=>
 {
     await mongoose.connect(
-        "mongodb+srv://sumitchaubey76:Tq9KWbiJafPhz9qu@mongodbtest.9axqh.mongodb.net/DevTinder"
+        "mongodb+srv://sumitchaubey76:password@mongodbtest.9axqh.mongodb.net/DevTinder"
                           );
 };
 connectDB().then(()=>{
@@ -536,7 +537,7 @@ let person = {
     "firstName":"kahuri",
     "lastName":"singh",
     "emailId":"sarfbjd@gmail.com",
-    "password}":"12345"
+    "password":"12345"
 }
 
 ```
@@ -646,7 +647,7 @@ app.get("/feed", async(req,res)=>{
 
 });
 ```
-### **now let suppose we have to same emailId then what i will do**
+### **now let suppose we have a same emailId then what i will do**
 -  i will  use findOne();
 ```javascript
 app.get("/user",async(req,res)=>
@@ -850,7 +851,7 @@ app.patch("/user",async(req,res)=>
 
 - **`API LEVEL Validation`  is a process where  data is validated when it is send through an api before being stored to database**
   -  it ensures only correct,,complete and secured data is send to db
-  - it allows ony the required fields and filter out the unnecesaary fields thst are injected by any attacks.
+  - it allows only the required fields and filter out the unnecesaary fields thst are injected by any attacks.
 
 ```javascript
 app.patch("/user",async(req,res)=>
