@@ -851,7 +851,7 @@ app.patch("/user",async(req,res)=>
 
 - **`API LEVEL Validation`  is a process where  data is validated when it is send through an api before being stored to database**
   -  it ensures only correct,,complete and secured data is send to db
-  - it allows only the required fields and filter out the unnecesaary fields thst are injected by any attacks.
+  - it allows ony the required fields and filter out the unnecesaary fields thst are injected by any attacks.
 
 ```javascript
 app.patch("/user",async(req,res)=>
@@ -1026,7 +1026,6 @@ app.post("/signup", async (req, res) => {
 
     );
   }
-
 });
 ```
 - <mark>this all changes taking place in  signup<mark>
@@ -1063,7 +1062,8 @@ const isPasswordValid=await bcrypt.compare(password, user.password);
 </font>
 
 **HOW authentication works**
--let suppose user make a login (email,password) request  lekin wo authenticate honi chaiye then server genrates the jwt tokens
+
+- let suppose user make a login (email,password) request  lekin wo authenticate honi chaiye then server genrates the jwt tokens
 and wrap the jwt token inside the cookies  and it send back the cookies to the client 
 - whenver the cookies send by the server, browser has inbuilt feature which store the cookies 
 - and if again you send a api call suppose a profile api then this cookie will  go along withit 
@@ -1087,8 +1087,7 @@ if(isPasswordValid)
  }
 ```
 
-- now we need ro create a profile api
-
+- now we need to create a profile api
 ```javascript
 app.get("/profile",(req,res)=>{
   const cookies=req.cookies;
@@ -1101,6 +1100,9 @@ app.get("/profile",(req,res)=>{
 - so for this we have cookie-parser 
 - we need to first install it using `npm i cookie-parser`
  -then need to import 
+  `const cookieParser=require("cookie-parser");`
+
+ then pass it as `app.use(cookieParser());`
 
  **Summary of Authentication Flow:**
 1. **Login:** User sends credentials (e.g., username/password).
@@ -1111,9 +1113,7 @@ app.get("/profile",(req,res)=>{
 6. **Verification:** Server verifies the token/session for every request.
 7. **Grant/Deny Access:** If valid, user is allowed access.
 This is how the basic authentication process works in most modern web applications.
- `const cookieParser=require("cookie-parser");`
 
- then pass it as `app.use(cookieParser());`
 
 
 **The `app.use(cookieParser())`; middleware in an Express.js application is used to parse cookies attached to the client’s request.**
@@ -1699,7 +1699,7 @@ if (!allowedStatus.includes(status)) {
 - If the status is invalid, the code proceeds to verify if the recipient user (toUser) exists in the database using User.findById(toUserId).
 - If the recipient user does not exist, it returns a 400 Bad Request response with the message "User not found".
 **Key Reason for This Check:**
-The status validation ensures that the user is sending a valid type of connection request (either ignoring or showing interest). Additionally, it ensures that the recipient user exists in the system before proceeding, which prevents sending connection requests to nonexistent users.
+The status validation ensures that the user is sending a valid type of connection request (either ignoring or showing interest). Additionally, it ensures that the recipient user exists in the system before proceeding, which prevents sending connection requests to non-existent users.
 
 5. #### Checking for Existing Connection Requests
 ```js
@@ -1772,6 +1772,7 @@ res.json({
 - **try-catch block:** The entire operation is wrapped in a try-catch block to handle any potential errors.
 
 - If an error occurs at any point in the process (e.g., database errors, invalid parameters), the server responds with a 400 Bad Request status and the error message.
+
 
 ### Summary of Key Steps
 **Authentication:** The user must be authenticated to send a connection request (`UserAuth`middleware).
@@ -1955,6 +1956,25 @@ const data = await connectionRequest.save();
     }
 })
 ```
+
+**Route Setup:** The requestRouter.post method sets up a POST route at /request/review/:status/:requestId. This route expects two URL parameters: status (indicating the action) and requestId (the ID of the connection request). It also applies a UserAuth middleware to ensure only authenticated users can access this route.
+
+**Parameters and Authentication:** Inside the route, it retrieves loggedInUser from req.user (set by the UserAuth middleware) and extracts the status and requestId from req.params.
+
+**Status Validation:** It defines an array allowedStatus with acceptable statuses ("accepted" and "rejected"). If status is not in allowedStatus, it responds with a 400 error and a message indicating the status is invalid.
+
+**Database Query:** The route attempts to find a connection request in the database using ConnectionRequest.findOne that matches:
+
+- _id matching requestId
+- toUserId matching the logged-in user's ID
+- status being "interested"
+- If no such request is found, it returns a 404 error with the message "Request not found."
+
+**Status Update:** If a matching connection request is found, the code updates its status to the provided value (either "accepted" or "rejected"), saves the update, and returns a success message with the updated request data.
+
+**Error Handling:** If any errors occur during the process, the catch block sends a 400 error with the error message.
+
+**Purpose:** This route allows users to accept or reject incoming connection requests based on the specified status.
 
 - **now i moving to the user level authentication**
 ```javascript
