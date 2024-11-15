@@ -1592,7 +1592,6 @@ profileRouter.get("/profile/view",UserAuth,async(req,res)=>{
       Object.keys(req.body).forEach((key)=>(loggedInUser[key]=req.body[key]));
        await loggedInUser.save();
   
-    
        res.json({
         message: `${loggedInUser.firstName}, your profile updated successfuly`,
         data: loggedInUser,
@@ -1749,6 +1748,7 @@ const connectionRequest = new ConnectionRequest({
 **fromUserId:** The ID of the user sending the request.
 **toUserId:** The ID of the recipient.
 **status:** The status of the request ("ignored" or "interested").
+
 7. #### Saving the Request to the Database
 ```js
 const data = await connectionRequest.save();
@@ -2001,6 +2001,7 @@ userRouter.get("/user/requests/received",UserAuth,async(req,res)=>
         
     }
 });
+
 userRouter.get("/user/connections",UserAuth,async(req,res)=>
 {
     try{
