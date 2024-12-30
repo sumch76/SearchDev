@@ -43,7 +43,7 @@ const isPasswordValid=await user.validatePassword(password );
 
    //add the token to the cookie and send back to the user
    res.cookie("token",token,{expires:new Date(Date.now()+8*3600000)});
-  res.send("login sucessfully");
+  res.send(user);
  }
  else{
   throw new Error("password is not correct");
