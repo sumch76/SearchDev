@@ -34,6 +34,7 @@ if(!user)
 {  
   throw new Error("email is  not present in DB");
 }
+
 const isPasswordValid=await user.validatePassword(password );
  if(isPasswordValid) 
  {
