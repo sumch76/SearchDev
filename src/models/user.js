@@ -40,7 +40,16 @@ const userSchema=new mongoose.Schema({
     },
     about:{
         type:String,
-    }
+    },
+    photoURL: {
+        type: String,
+        default: "https://cdn-icons-png.flaticon.com/128/924/924915.png",
+        validate(value) {
+          if (!validator.isURL(value)) {
+            throw new Error("Invalid Photo URL: " + value);
+          }
+        },
+      },
     },{timestamps:true},);
     userSchema.index({firstName: 1, lastName: 1})
 

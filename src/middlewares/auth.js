@@ -5,7 +5,7 @@ const User=require("../models/user");
     const {token}=req.cookies;
     if (!token)
       {
-        throw new Error("Invalid token"); 
+        return res.status(401).send("you are not loggedin!");
       }
     const decodeMessage=await jwt.verify(token,"AbcdDE@123");
     const {_id}=decodeMessage;
