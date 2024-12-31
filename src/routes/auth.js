@@ -43,6 +43,8 @@ const isPasswordValid=await user.validatePassword(password );
 
    //add the token to the cookie and send back to the user
    res.cookie("token",token,{
+    httpOnly: true,
+    secure: false, // Set to true if using HTTPS
     expires:new Date(Date.now()+8*3600000)});
   res.send(user);
  }
@@ -56,7 +58,7 @@ const isPasswordValid=await user.validatePassword(password );
 });
 authRouter.post("/logout", async(req,res)=>{
     try {
-        res.cookie("token",null,{expires:new Date(Date.now())});
+        res.clearCookie("token",null,{expires:new Date(Date.now())});
         res.send("logout sucessfully");
         
     } catch (error) {
