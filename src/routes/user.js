@@ -80,7 +80,7 @@ userRouter.get("/feed",UserAuth,async(req,res)=>
                 {_id:{$nin:Array.from(hideUsersFromFeed)}},
                 {_id:{$ne:loggedInUser._id}},
             ],
-        }).select(["firstName","lastName"])
+        }).select(["firstName","lastName", "age" ,"photoURL","gender" ,"about"])
         .skip(skip)
         .limit(limit);
 

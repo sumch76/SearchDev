@@ -24,12 +24,13 @@ const validateEditProfileData=(req)=>{
 
     const allowdedEditFields=
     ["firstName", 
-        "LastName",
+        "lastName",
         "emailId",
         "photoURL",
         "gender",
         "about",
-        "skills"];
+        "skills",
+    "age"];
 const isEditAllowed=Object.keys(req.body).every((field)=>
     allowdedEditFields.includes(field)
 );

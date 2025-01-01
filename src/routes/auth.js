@@ -8,12 +8,12 @@ authRouter.post("/signup", async (req, res) => {
   try {
     //validation of data
     validateSignUpData(req);
-    const {firstName, lastName, emailId, password } = req.body;
+    const {firstName, lastName, emailId, password,skills } = req.body;
 
     //encrypt the password
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log(hashedPassword);
-    const user = new User({ firstName, lastName, emailId, password: hashedPassword });
+    const user = new User({ firstName, lastName, emailId, password: hashedPassword ,skills});
 
     console.log(user);
     await user.save();
@@ -53,7 +53,7 @@ const isPasswordValid=await user.validatePassword(password );
  }
 }
   catch(err){
-    res.status(400).send("Error : "+err.message);
+    res.status(401).send("Error : "+err.message);
   }
 });
 authRouter.post("/logout", async(req,res)=>{
