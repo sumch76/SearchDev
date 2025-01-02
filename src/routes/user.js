@@ -21,7 +21,7 @@ userRouter.get("/user/requests/received",UserAuth,async(req,res)=>
         res.status(400).send("error:" +error.message);
         
     }
-});
+})
 userRouter.get("/user/connections",UserAuth,async(req,res)=>
 {
     try{
@@ -54,7 +54,6 @@ userRouter.get("/feed",UserAuth,async(req,res)=>
     try {
         const loggedInUser=req.user;
 
-
         const page = parseInt(req.query.page) || 1;
         let limit = parseInt(req.query.limit) || 10;
         limit = limit > 50 ? 50 : limit;
@@ -67,7 +66,6 @@ userRouter.get("/feed",UserAuth,async(req,res)=>
         }).select("fromUserId toUserId")
         // populate("fromUserId",["firstName","lastName"])
         // .populate("toUserId",["firstName","lastName"]);
-
 
         const hideUsersFromFeed=new Set();
         connectionRequest.forEach((req)=>

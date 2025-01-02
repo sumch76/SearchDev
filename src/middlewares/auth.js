@@ -14,7 +14,6 @@ const User=require("../models/user");
     { 
       throw new Error("User not found");
     }
-     
     req.user=user;  
     next(); 
   }
