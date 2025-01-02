@@ -31,7 +31,7 @@ userRouter.get("/user/connections",UserAuth,async(req,res)=>
                 {fromUserId: loggedInUser._id,status: 'accepted'},
                 {toUserId: loggedInUser._id,status: 'accepted'},
             ],
-        }).populate("fromUserId",["firstName","lastName"]).populate("toUserId",["firstName","lastName"]);
+        }).populate("fromUserId",["firstName","lastName","photoURL","age","about"]).populate("toUserId",["firstName","lastName","photoURL","age","about"]);
 
       const data=connectionRequest.map((row)=>
       {
