@@ -11,15 +11,13 @@ userRouter.get("/user/requests/received",UserAuth,async(req,res)=>
         const connectionRequest = await ConnectionRequest.find({
             toUserId: loggedInUser._id,
             status:"interested",
-        }).populate("fromUserId",["firstName","lastName"]);
-
+        }).populate("fromUserId",["firstName","lastName","photoURL","age","about"]);
         res.json({
             message: "data fetched successfully",
             data: connectionRequest,
         });
     } catch (error) {
-        res.status(400).send("error:" +error.message);
-        
+        res.status(400).send("error:" +error.message);   
     }
 })
 userRouter.get("/user/connections",UserAuth,async(req,res)=>

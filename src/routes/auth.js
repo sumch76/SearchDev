@@ -14,15 +14,19 @@ authRouter.post("/signup", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log(hashedPassword);
     const user = new User({ firstName, lastName, emailId, password: hashedPassword ,skills});
-    console.log(user);
-    await user.save();
-    res.send("user added successfully");
+    console.log(user);   
+    const savedUser=await user.save();
+    const token= await savedUser.getJWT();
+
+     res.cookie("token",token,{
+      expires:new Date(Date.now() +1*3600000),
+     })
+    res.json({message:"User Added Successfully",data: savedUser});
   }
   catch (err) {
     res.status(400).send("Error : " + err.message
     );
   }
-
 });
 authRouter.post("/login",async(req, res)=>{
   try{
