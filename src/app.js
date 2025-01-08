@@ -3,10 +3,12 @@ const connectDB = require("./config/database");
 const app = express();
 const cookieParser=require("cookie-parser");
 const cors=require("cors");
+const dotenv=require('dotenv')
+dotenv.config();
 
 app.use(cors(
   {
-    origin:"http://localhost:5173",
+    origin:process.env.CLIENT_URL,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE','OPTIONS'],
     credentials: true,
   }
