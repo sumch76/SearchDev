@@ -1,72 +1,77 @@
- const express=require('express');
- const authRouter=express.Router();
- const { validateSignUpData } = require("../utils/validation");
- const bcrypt = require("bcrypt");
- const User = require("../models/user");
+const express = require('express');
+const authRouter = express.Router();
+const { validateSignUpData } = require("../utils/validation");
+const bcrypt = require("bcrypt");
+const User = require("../models/user");
 
 authRouter.post("/signup", async (req, res) => {
   try {
     //validation of data
     validateSignUpData(req);
-    const {firstName, lastName, emailId, password,skills } = req.body;
+    const { firstName, lastName, emailId, password, skills } = req.body;
 
     //encrypt the password
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log(hashedPassword);
-    const user = new User({ firstName, lastName, emailId, password: hashedPassword ,skills});
-    console.log(user);   
-    const savedUser=await user.save();
-    const token= await savedUser.getJWT();
+    const user = new User({ firstName, lastName, emailId, password: hashedPassword, skills });
+    console.log(user);
+    const savedUser = await user.save();
+    const token = await savedUser.getJWT();
 
-     res.cookie("token",token,{
-      expires:new Date(Date.now() +1*3600000),
-     })
-    res.json({message:"User Added Successfully",data: savedUser});
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      expires: new Date(Date.now() + 1 * 3600000),
+    })
+    res.json({ message: "User Added Successfully", data: savedUser });
   }
   catch (err) {
     res.status(400).send("Error : " + err.message
     );
   }
 });
-authRouter.post("/login",async(req, res)=>{
-  try{
-const {emailId, password} = req.body;
-const user= await User.findOne({ emailId: emailId});
-if(!user)
-{  
-  throw new Error("email is  not present in DB");
-}
+authRouter.post("/login", async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+    const user = await User.findOne({ emailId: emailId });
+    if (!user) {
+      throw new Error("email is  not present in DB");
+    }
 
-const isPasswordValid=await user.validatePassword(password );
- if(isPasswordValid) 
- {
-   //create a jwt token
-   const token=await user.getJWT();
+    const isPasswordValid = await user.validatePassword(password);
+    if (isPasswordValid) {
+      //create a jwt token
+      const token = await user.getJWT();
 
-   //add the token to the cookie and send back to the user
-   res.cookie("token",token,{
-    httpOnly: true,
-    secure: false, // Set to true if using HTTPS
-    expires:new Date(Date.now()+8*3600000)});
-  res.send(user);
- }
- else{
-  throw new Error("password is not correct");
- }
-}
-  catch(err){
-    res.status(401).send("Error : "+err.message);
+      //add the token to the cookie and send back to the user
+      res.cookie("token", token, {
+        httpOnly: true,
+        // Secure Must be true in production (HTTPS), false in dev (HTTP)
+        secure: process.env.NODE_ENV === "production",
+        // SameSite Must be 'None' for cross-domain cookies (Vercel -> Render)
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+        expires: new Date(Date.now() + 8 * 3600000)
+      });
+      res.send(user);
+    }
+    else {
+      throw new Error("password is not correct");
+    }
+  }
+  catch (err) {
+    res.status(401).send("Error : " + err.message);
   }
 });
-authRouter.post("/logout", async(req,res)=>{
-    try {
-        res.clearCookie("token",null,{expires:new Date(Date.now())});
-        res.send("logout sucessfully");
-        
-    } catch (error) {
-        res.status(401).send("Error: " + error.message);
-        
-    }
+authRouter.post("/logout", async (req, res) => {
+  try {
+    res.clearCookie("token", null, { expires: new Date(Date.now()) });
+    res.send("logout sucessfully");
+
+  } catch (error) {
+    res.status(401).send("Error: " + error.message);
+
+  }
 })
 
-module.exports=authRouter;
+module.exports = authRouter;
