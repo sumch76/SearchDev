@@ -11,7 +11,7 @@ dotenv.config();
 
 app.use(cors(
   {
-    origin: process.env.CLIENT_URL,
+    origin: process.env.CLIENT_URL?.replace(/\/$/, ""),
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
   }
