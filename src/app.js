@@ -34,12 +34,19 @@ app.use("/", chatRouter);
 const server = http.createServer(app);
 initializeSocket(server);
 
+
 connectDB()
   .then(() => {
     console.log("database connection established");
-    server.listen(3000, () => {
-      console.log("Server is successfully listening on port 3000..");
-    });
+    // Only listen if the file is run directly (not imported as a module by Vercel)
+    if (require.main === module) {
+      const port = process.env.PORT || 3000;
+      server.listen(port, () => {
+        console.log(`Server is successfully listening on port ${port}..`);
+      });
+    }
   }).catch((err) => {
     console.log("database cannot be connected");
   });
+
+module.exports = app;
